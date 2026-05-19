@@ -1,6 +1,6 @@
 # ClawGuard Harness Scorecard
 
-Generated from scenario results: 2026-05-19T12:45:15.912718+00:00
+Generated from scenario results: 2026-05-19T12:51:18.799822+00:00
 
 ## Overall score
 

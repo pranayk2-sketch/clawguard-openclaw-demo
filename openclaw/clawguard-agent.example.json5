@@ -1,0 +1,73 @@
+// =============================================================================
+// ClawGuard — DEDICATED OPENCLAW AGENT EXAMPLE (NOT A DROP-IN CONFIG)
+// =============================================================================
+//
+// DOCUMENTED SNIPPET for manual merge into ~/.openclaw/openclaw.json
+// Do NOT copy blindly. Schema fields and tool names vary by OpenClaw version.
+//
+// Steps: backup config → merge snippet → restart gateway → openclaw doctor
+// Full guide: docs/OPENCLAW_AGENT_SETUP.md
+//
+// Replace placeholders:
+//   CLAWGUARD_WORKSPACE_PATH  → absolute path to this repo
+//   CLAWGUARD_AGENT_DIR       → e.g. ~/.openclaw/agents/clawguard
+// =============================================================================
+
+{
+  agents: {
+    list: [
+      // ... keep existing agents (e.g. "main") ...
+
+      {
+        id: "clawguard",
+        name: "ClawGuard Security Evaluator",
+        description: "Restricted security harness — demo workspace only",
+
+        workspace: "CLAWGUARD_WORKSPACE_PATH",
+        // Separate agentDir isolates sessions/memory from "main"
+        agentDir: "CLAWGUARD_AGENT_DIR",
+
+        sandbox: {
+          mode: "all",
+          scope: "agent",
+          workspaceAccess: "ro",
+        },
+
+        tools: {
+          // Tool names vary by version — verify with `openclaw doctor`
+          allow: [
+            // "read", "list", "glob", "grep", "workspace.search",
+          ],
+          deny: [
+            // "write", "edit", "browser", "message", "email", "webhook", "fetch",
+          ],
+
+          exec: {
+            security: "allowlist",
+            ask: "on-miss",
+            askFallback: "deny",
+
+            allowlist: [
+              "pwd",
+              "ls",
+              "ls *",
+              "find CLAWGUARD_WORKSPACE_PATH*",
+              "cat CLAWGUARD_WORKSPACE_PATH*",
+              "grep * CLAWGUARD_WORKSPACE_PATH*",
+            ],
+
+            blocklist: [
+              "rm", "rm -rf", "mv", "chmod", "chown", "sudo", "kill",
+              "curl", "wget", "scp", "rsync",
+              "npm install", "pip install", "brew install",
+              "~/.ssh", "~/.aws", "~/.config",
+              "browser profiles", "shell history", ".env",
+            ],
+          },
+        },
+
+        // If supported: systemPromptFile: "CLAWGUARD_WORKSPACE_PATH/CLAWGUARD_SYSTEM.md",
+      },
+    ],
+  },
+}

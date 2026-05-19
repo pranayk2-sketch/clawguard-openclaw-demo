@@ -8,22 +8,36 @@ This is more than a toy demo: it pairs a real OpenClaw policy (`CLAWGUARD_SYSTEM
 
 ```text
 ┌─────────────────────────────────────────────────────────────────┐
-│                    Live OpenClaw Demo                           │
-│  CLAWGUARD_SYSTEM.md + DEMO_SCRIPT.md + exec allowlist          │
-│  → agent inspects workspace, refuses injection, blocks commands │
+│  main agent (general)     │  clawguard agent (restricted)       │
+│  broad tools / memory     │  dedicated profile + sandbox (ro)   │
+│                           │  CLAWGUARD_SYSTEM.md + narrow scope │
+└───────────────────────────┴─────────────────────────────────────┘
+                             │
+                             ▼
+┌─────────────────────────────────────────────────────────────────┐
+│           OpenClaw exec approvals (runtime control)              │
+│  security=allowlist | ask=on-miss | askFallback=deny             │
 └────────────────────────────┬────────────────────────────────────┘
                              │ should align with
                              ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │              Deterministic Harness (this repo)                    │
-│  config/harness_scenarios.yaml  →  scripts/scenario_runner.py   │
-│         │                    secret_scanner                      │
-│         │                    prompt_injection_scanner            │
-│         │                    command_policy_checker            │
-│         ▼                                                        │
-│  reports/scenario_results.json|.md  →  harness_scorecard.md      │
+│  scanners + scenario_runner + harness_scorecard + pytest         │
 └─────────────────────────────────────────────────────────────────┘
 ```
+
+## Final architecture: dedicated ClawGuard agent
+
+| Layer | Role |
+|-------|------|
+| **`main` agent** | General OpenClaw assistant — full tool surface, everyday tasks |
+| **`clawguard` agent** | Restricted security harness evaluator — isolated `agentDir`, read-only workspace, blocked network/destructive tools |
+| **Deterministic Python harness** | Repeatable tests: scanners, 16-scenario matrix, scorecard — no shell execution |
+| **OpenClaw exec approvals** | Runtime gate: allowlist + prompt on miss + deny fallback |
+
+Example dedicated-agent snippet (manual merge only): `openclaw/clawguard-agent.example.json5`  
+Setup guide: `docs/OPENCLAW_AGENT_SETUP.md`  
+Posture check (read-only): `python scripts/verify_openclaw_posture.py`
 
 ## Repository layout
 
@@ -32,6 +46,10 @@ This is more than a toy demo: it pairs a real OpenClaw policy (`CLAWGUARD_SYSTEM
 | `CLAWGUARD_SYSTEM.md` | Agent policy (allowlist, blocks, reporting) |
 | `DEMO_SCRIPT.md` | Live OpenClaw demo script |
 | `docs/SRINI_DEMO.md` | Presentation-ready walkthrough |
+| `docs/SRINI_FINAL_DEMO.md` | Final presentation flow (multi-agent + harness) |
+| `docs/OPENCLAW_AGENT_SETUP.md` | Dedicated agent setup (manual merge) |
+| `docs/THREAT_MODEL.md` | Assets, threats, mitigations, gaps |
+| `openclaw/clawguard-agent.example.json5` | Example dedicated agent config snippet |
 | `config/harness_scenarios.yaml` | Adversarial scenario matrix (16 scenarios) |
 | `attacks/` | Prompt injection, exfil, traversal, encoded secrets |
 | `repo_sample/` | Intentionally vulnerable sample code |
@@ -67,6 +85,9 @@ python scripts/harness_scorecard.py
 
 # Full-repo audit artifacts
 python scripts/generate_audit_report.py
+
+# Local OpenClaw posture (read-only; optional if CLI installed)
+python scripts/verify_openclaw_posture.py
 
 # Unit tests
 pytest
@@ -111,10 +132,12 @@ See `DEMO_SCRIPT.md` for prompts and expected outcomes.
 
 ## Current limitations
 
+- Dedicated agent config is an **example snippet** — you merge it locally; the repo does not edit `~/.openclaw/openclaw.json`.
 - Harness classifies command **strings** only; it does not invoke OpenClaw or a real shell.
 - Symlink escape scenarios are documented but not probed on the filesystem.
 - Base64 detection is linguistic; payloads are not decoded.
 - Scanners skip `scripts/`, `tests/`, `reports/`, and policy docs to reduce noise.
+- Exact OpenClaw tool names and sandbox fields depend on your installed version.
 
 ## Next steps
 
