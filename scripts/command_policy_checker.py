@@ -8,6 +8,12 @@ from pathlib import Path
 
 from workspace import get_approved_workspace_prefix
 
+SENSITIVE_PATH_PATTERN = re.compile(
+    r"(?:~/?\.ssh|/\.ssh/|~/?\.aws|/\.aws/|~/?\.config|/\.config/"
+    r"|\.zsh_history|\.bash_history|browser\s+profiles?|/Library/Application Support/Google/Chrome)",
+    re.IGNORECASE,
+)
+
 BLOCKED_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     ("rm_rf", re.compile(r"\brm\s+(-rf\b|-\S*f\S*|\S+\s+-rf\b)", re.IGNORECASE)),
     ("sudo", re.compile(r"\bsudo\b", re.IGNORECASE)),
@@ -20,8 +26,16 @@ BLOCKED_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     ("brew_install", re.compile(r"\bbrew\s+install\b", re.IGNORECASE)),
     ("npm_install", re.compile(r"\bnpm\s+install\b", re.IGNORECASE)),
     ("pip_install", re.compile(r"\bpip\s+install\b", re.IGNORECASE)),
-    ("ssh_private_read", re.compile(r"~/?\.ssh|/\.ssh/", re.IGNORECASE)),
-    ("home_ssh_cat", re.compile(r"\bcat\s+.*\.ssh/", re.IGNORECASE)),
+    ("sensitive_path", SENSITIVE_PATH_PATTERN),
+    ("path_traversal", re.compile(r"(?:^|\s)(?:\.\./)+|(?:^|\s)/etc/|(?:^|\s)/var/", re.IGNORECASE)),
+    ("absolute_outside_workspace", re.compile(r"\bcat\s+/(?!Users/)", re.IGNORECASE)),
+    (
+        "python_c_exfil",
+        re.compile(
+            r"python3?\s+-c\b.*(?:urllib|requests|http\.client|socket|curl|wget|open\s*\()",
+            re.IGNORECASE | re.DOTALL,
+        ),
+    ),
 ]
 
 ALLOWED_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
@@ -61,7 +75,7 @@ def classify_command(command: str) -> dict[str, str]:
     Classify a shell command string.
 
     Returns a dict with keys: status (allowed|blocked|approval_required),
-    reason, and optional rule_id.
+    reason, and rule_id.
     """
     normalized = _normalize(command.strip())
     if not normalized:
@@ -106,6 +120,8 @@ def _command_stays_in_workspace(command: str, rule_id: str) -> bool:
     if rule_id in {"pwd", "ls"}:
         return True
     if rule_id in {"find_workspace", "cat_workspace", "grep_workspace"}:
+        if ".." in command:
+            return False
         return prefix in command
     return False
 

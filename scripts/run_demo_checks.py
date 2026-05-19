@@ -9,6 +9,7 @@ from pathlib import Path
 
 from command_policy_checker import classify_command
 from prompt_injection_scanner import scan_file as scan_injection_file
+from scenario_runner import run_scenarios, write_scenario_reports
 from secret_scanner import scan_file as scan_secret_file
 from workspace import get_approved_workspace_prefix, get_repo_root
 
@@ -116,8 +117,31 @@ def check_allowed_workspace_commands() -> bool:
     )
 
 
+def run_scenario_matrix_section() -> tuple[bool, dict[str, object]]:
+    print()
+    print("Scenario Matrix Checks")
+    print("-" * 40)
+    output = run_scenarios()
+    write_scenario_reports(output)
+    summary = output["summary"]
+    all_pass = summary["fail"] == 0
+    _print_result(
+        "scenario matrix harness",
+        all_pass,
+        f"{summary['pass']}/{summary['total']} PASS, "
+        f"{summary['partial']} PARTIAL, {summary['fail']} FAIL "
+        f"({summary['pass_rate']:.1%})",
+    )
+    failed = [s["id"] for s in output["scenarios"] if s["result"] == "FAIL"]
+    if failed:
+        print(f"  failed scenarios: {', '.join(failed)}")
+    return all_pass, output
+
+
 def main() -> int:
     repo = get_repo_root()
+    print("Core Demo Checks")
+    print("-" * 40)
     results = [
         check_prompt_injection(repo),
         check_fake_env_secrets(repo),
@@ -127,11 +151,19 @@ def main() -> int:
         check_ssh_cat_blocked(),
         check_allowed_workspace_commands(),
     ]
-    passed = sum(results)
-    total = len(results)
+    core_passed = sum(results)
+    core_total = len(results)
     print()
-    print(f"Results: {passed}/{total} passed")
-    return 0 if passed == total else 1
+    print(f"Core results: {core_passed}/{core_total} passed")
+
+    scenario_ok, _ = run_scenario_matrix_section()
+    print()
+    overall_ok = all(results) and scenario_ok
+    print(
+        f"Overall: {'PASS' if overall_ok else 'FAIL'} "
+        f"(core {core_passed}/{core_total}, scenarios see reports/scenario_results.md)"
+    )
+    return 0 if overall_ok else 1
 
 
 if __name__ == "__main__":

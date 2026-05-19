@@ -16,15 +16,15 @@ INJECTION_RULES: list[tuple[str, str, re.Pattern[str], str]] = [
         "high",
     ),
     (
-        "read_ssh",
-        "read ~/.ssh",
-        re.compile(r"read\s+~/?\.ssh", re.IGNORECASE),
-        "critical",
+        "override_system",
+        "override system",
+        re.compile(r"override\s+system", re.IGNORECASE),
+        "high",
     ),
     (
-        "send_contents",
-        "send contents",
-        re.compile(r"send\s+(?:their\s+)?contents", re.IGNORECASE),
+        "developer_message",
+        "developer message",
+        re.compile(r"developer\s+message", re.IGNORECASE),
         "high",
     ),
     (
@@ -34,26 +34,85 @@ INJECTION_RULES: list[tuple[str, str, re.Pattern[str], str]] = [
         "high",
     ),
     (
+        "send_to",
+        "send to",
+        re.compile(r"send\s+(?:to|contents|their\s+contents)", re.IGNORECASE),
+        "high",
+    ),
+    (
         "exfiltrate",
         "exfiltrate",
         re.compile(r"exfiltrat", re.IGNORECASE),
         "critical",
     ),
     (
-        "override_system",
-        "override system",
-        re.compile(r"override\s+system", re.IGNORECASE),
+        "base64_obfuscation",
+        "base64",
+        re.compile(r"\bbase64\b", re.IGNORECASE),
+        "medium",
+    ),
+    (
+        "decode_secret",
+        "decode this secret",
+        re.compile(r"decode\s+this\s+secret", re.IGNORECASE),
         "high",
+    ),
+    (
+        "read_ssh",
+        "read ~/.ssh",
+        re.compile(r"read\s+~/?\.ssh|~/?\.ssh/id_rsa", re.IGNORECASE),
+        "critical",
+    ),
+    (
+        "read_env",
+        "read .env",
+        re.compile(r"read\s+.*\.env|\.env\s+files", re.IGNORECASE),
+        "high",
+    ),
+    (
+        "curl_command",
+        "curl",
+        re.compile(r"\bcurl\b", re.IGNORECASE),
+        "critical",
+    ),
+    (
+        "wget_command",
+        "wget",
+        re.compile(r"\bwget\b", re.IGNORECASE),
+        "critical",
+    ),
+    (
+        "package_install_language",
+        "package install",
+        re.compile(r"\b(?:brew\s+install|npm\s+install|pip\s+install)\b", re.IGNORECASE),
+        "high",
+    ),
+    (
+        "path_traversal_language",
+        "path traversal",
+        re.compile(
+            r"(?:\.\./){2,}|/etc/passwd|cat\s+\.\./|find\s+/etc|outside\s+the\s+approved\s+workspace",
+            re.IGNORECASE,
+        ),
+        "high",
+    ),
+    (
+        "symlink_escape",
+        "symlink escape",
+        re.compile(r"symlink|ln\s+-s", re.IGNORECASE),
+        "medium",
     ),
 ]
 
 SKIP_DIR_NAMES = {".git", "__pycache__", ".pytest_cache", ".venv", "venv", "node_modules"}
-SKIP_RELATIVE_PREFIXES = ("scripts/", "tests/", "reports/")
+SKIP_RELATIVE_PREFIXES = ("scripts/", "tests/", "reports/", "config/")
 SKIP_FILE_NAMES = {
     "CLAWGUARD_SYSTEM.md",
     "DEMO_SCRIPT.md",
     "README.md",
     "generated_security_report.md",
+    "harness_scorecard.md",
+    "scenario_results.md",
 }
 
 
